@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import App from './imports/ui/container/App/index';
+import App from './../imports/ui/container/App/index';
 import { Meteor } from 'meteor/meteor';
 
 import { createStore } from 'redux';

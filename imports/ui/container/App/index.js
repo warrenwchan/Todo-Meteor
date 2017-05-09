@@ -1,4 +1,6 @@
 import React, { Component } from 'react';
+import { ToDos } from '../../../api/todos';
+import { createContainer } from 'meteor/react-meteor-data';
 import PropTypes from 'prop-types';
 import './styles.css';
 
@@ -26,31 +28,27 @@ class App extends Component {
   }
 
   toggleComplete(item) {
-    let newTodos = this.state.todos.map((todo) => {
-      item.id === todo.id ? todo.complete = !todo.complete : todo.complete;
-      return todo;
-    });
-    this.setState({
-      todos: newTodos
-    })
+    ToDos.update(item._id, { $set: {complete: !item.complete}});
   }
 
   removeToDo (item) {
-    let newTodos = this.state.todos.filter((todo) => {
-      return todo.id !== item.id;
-    });
-    this.setState({
-      todos: newTodos
-    })
+    ToDos.remove(item._id);
   }
 
   removeCompleted() {
-    let todos = this.state.todos.filter((todo) => !todo.complete);
-    this.setState({ todos });
+    ToDos.find({complete: true}).forEach((todo) => {
+      ToDos.remove(todo._id);
+    })
+
+    // const completedTodos = this.props.todos.filter((item) => item.complete);
+
+    // completedTodos.foreach((completedTodos) => {
+    //   ToDos.remove(completedTodos._id);
+    // })
   }
 
   hasCompleted(item) {
-    let completedTodos = this.state.todos.filter((todo) => todo.complete);
+    let completedTodos = this.props.todos.filter((todo) => todo.complete);
     if (completedTodos.length > 0) {
       return true;
     } else {
@@ -62,17 +60,16 @@ class App extends Component {
     event.preventDefault();
 
     if(this.state.inputValue) {
-      const id = this.state.lastId +1;
-      const newTodos = this.state.todos.concat({
-        id,
+
+      ToDos.insert({
         title: this.state.inputValue,
         complete: false
-      });
+      })
+
       this.setState({
-        todos: newTodos,
-        lastId: id
+        inputValue: '',
       });
-      this.setState({inputValue: ''});
+
     }
   }
 
@@ -82,10 +79,8 @@ class App extends Component {
   }
 
   componentDidMount() {
-    this.toDoInput.focus()
+    // this.toDoInput.focus()
   }
-
-  // <input type="text" ref={(input) => (this.toDoInput = input)} />
 
   render() {
     console.log(this.state.inputValue);
@@ -103,7 +98,7 @@ class App extends Component {
           </form>
         </div>
         <ul>
-          {this.state.todos.map((todo, i) => (
+          {this.props.todos.map((todo, i) => (
             <ToDoItem
               item={todo}
               key={i}
@@ -114,7 +109,7 @@ class App extends Component {
           ))}
         </ul>
         <div className="todo-admin">
-          <ToDoCount number={this.state.todos.length}/>
+          <ToDoCount number={this.props.todos.length}/>
           {this.hasCompleted() &&
             <ClearButton removeCompleted={this.removeCompleted}/>
           }
@@ -124,21 +119,16 @@ class App extends Component {
   }
 }
 
-ToDoItem.propTypes = {
-  item: PropTypes.shape({
-    id: PropTypes.number,
-    title: PropTypes.string,
-    complete: PropTypes.bool
-  }).isRequired,
-  toggleComplete : PropTypes.func.isRequired
+App.defaultProps = {
+  todos: []
 };
 
-ToDoCount.propTypes = {
-  number: PropTypes.number.isRequired
+App.propTypes = {
+  todos: PropTypes.array.isRequired,
 };
 
-ClearButton.propTypes = {
-  removeCompleted: PropTypes.func.isRequired
-};
-
-export default App;
+export default createContainer(() => {
+  return {
+    todos: ToDos.find({}).fetch()
+  };
+}, App);
